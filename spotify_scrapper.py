@@ -6,7 +6,10 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    StaleElementReferenceException
+)
 
 from objects import SpotifyMusic
 
@@ -32,9 +35,9 @@ class SpotifyScrapper(Chrome):
     def __init__(self, username=None, password=None):
 
         options = ChromeOptions()
-        options.add_argument('user-data-dir=data_dir') # TEMP
+        options.add_argument('user-data-dir=data_dir')  # TEMP
 
-        log.info(f'Running Chrome')
+        log.info('Running Chrome')
 
         super().__init__(chrome_options=options)
         self.get('https://accounts.spotify.com/login')
@@ -47,12 +50,16 @@ class SpotifyScrapper(Chrome):
             log.warning('Not logged in any spotify account')
 
     def login(self, username, password):
-        
+
         try:
-            form_username = self.find_element_by_xpath('//input[@ng-model="form.username"]')
+            form_username = self.find_element_by_xpath(
+                '//input[@ng-model="form.username"]'
+            )
             form_username.send_keys(username)
 
-            form_password = self.find_element_by_xpath('//input[@ng-model="form.password"]')
+            form_password = self.find_element_by_xpath(
+                '//input[@ng-model="form.password"]'
+            )
             form_password.send_keys(password)
 
             log.debug('Form completed, sending infos')
@@ -63,13 +70,14 @@ class SpotifyScrapper(Chrome):
 
         except NoSuchElementException:
             self.__is_logged = True
-            log.info('Already logged in, skipping') # TEMP
+            log.info('Already logged in, skipping')  # TEMP
 
         try:
             WebDriverWait(self, 10).until(EC.presence_of_element_located(
                 (By.XPATH, '//a[@ng-href="https://open.spotify.com"]')
             )).click()
-            log.info(f'{"Login Succeded" if not self.__is_logged else "OK"}, loading WebPlayer')
+            status = 'Login Succeded' if not self.__is_logged else 'OK'
+            log.info(f'{status}, loading WebPlayer')
         except:
             # TODO: Not logged? What Exception?
             log.error('Login Failed')
@@ -79,11 +87,13 @@ class SpotifyScrapper(Chrome):
 
         # TODO: Wait to load
         self.implicitly_wait(5)
-        self.playlists = self.find_elements_by_xpath('//a[contains(@href, "/playlist/")]')
+        self.playlists = self.find_elements_by_xpath(
+            '//a[contains(@href, "/playlist/")]'
+        )
         self.playlists = {p.text: p for p in self.playlists}
 
         return self.playlists
-    
+
     def get_playlist(self, playlist_name):
 
         self.playlists[playlist_name].click()
@@ -95,8 +105,13 @@ class SpotifyScrapper(Chrome):
         WebDriverWait(self, 10).until(EC_wait_for_non_empty_text(
             (By.XPATH, '(//a[contains(@href, "/user/")])[2]')
         ))
-        user = self.find_element_by_xpath('(//a[contains(@href, "/user/")])[2]')
-        text = ' '.join(el.text for el in user.find_elements_by_xpath('./parent::*/span'))
+        user = self.find_element_by_xpath(
+            '(//a[contains(@href, "/user/")])[2]'
+        )
+        text = ' '.join(
+            el.text for el in
+            user.find_elements_by_xpath('./parent::*/span')
+        )
         n_tracks = int(re.search(r'(\d+) músicas', text).group(1))
 
         log.info(f'There is {n_tracks} in "{playlist_name}" playlist')
@@ -107,9 +122,12 @@ class SpotifyScrapper(Chrome):
             js_code = js.read()
 
             # TODO: Check async js
-            bottom_sentinel = WebDriverWait(self, 10).until(EC.presence_of_element_located(
-                (By.XPATH, '//div[@data-testid="bottom-sentinel"]')
-            ))
+            bottom_sentinel = WebDriverWait(self, 10).until(
+                EC.presence_of_element_located((
+                    By.XPATH,
+                    '//div[@data-testid="bottom-sentinel"]'
+                ))
+            )
 
             curr_track = 0
             all_tracks = []
@@ -126,13 +144,16 @@ class SpotifyScrapper(Chrome):
                     break
 
                 self.execute_script(js_code, bottom_sentinel)
-                # self.execute_script('arguments[0].scrollIntoView();', bottom_sentinel)
+                # self.execute_script(
+                #     'arguments[0].scrollIntoView();',
+                #     bottom_sentinel
+                # )
 
-                WebDriverWait(self, 10).until(EC.presence_of_element_located(
-                    (By.XPATH, f'//div[@role="row" and @aria-rowindex > {curr_track}]')
-                ))
-            
-            log.info(f'Proccess Finished')
-        
-            return all_tracks[1:] # Removing column titles
+                WebDriverWait(self, 10).until(EC.presence_of_element_located((
+                    By.XPATH,
+                    f'//div[@role="row" and @aria-rowindex > {curr_track}]'
+                )))
 
+            log.info('Proccess Finished')
+
+            return all_tracks[1:]  # Removing column titles
