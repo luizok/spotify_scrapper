@@ -91,6 +91,11 @@ class SpotifyScrapper(Chrome):
             '//a[contains(@href, "/playlist/")]'
         )
         self.playlists = {p.text: p for p in self.playlists}
+        self.playlists.update({
+            'collection': self.find_element_by_xpath(
+                '//a[@href="/collection/tracks"]'
+            )
+        })
 
         return self.playlists
 
