@@ -75,10 +75,64 @@ class SpotifyScrapper(Chrome):
             log.error('Login Failed')
             self.quit()
 
+    def get_playlists(self):
 
+        # TODO: Wait to load
+        self.implicitly_wait(5)
+        self.playlists = self.find_elements_by_xpath('//a[contains(@href, "/playlist/")]')
+        self.playlists = {p.text: p for p in self.playlists}
+
+        return self.playlists
+    
+    def get_playlist(self, playlist_name):
+
+        self.playlists[playlist_name].click()
+
+        # TODO: Wait to load
+
+        # Get nubmer of tracks
+        # TODO: Is There a better way to do this? Probably
+        WebDriverWait(self, 10).until(EC_wait_for_non_empty_text(
+            (By.XPATH, '(//a[contains(@href, "/user/")])[2]')
+        ))
+        user = self.find_element_by_xpath('(//a[contains(@href, "/user/")])[2]')
+        text = ' '.join(el.text for el in user.find_elements_by_xpath('./parent::*/span'))
+        n_tracks = int(re.search(r'(\d+) músicas', text).group(1))
+
+        log.info(f'There is {n_tracks} in "{playlist_name}" playlist')
+
+        # This part can be optimized, the interchange between
+        # js and python was done for learning purposes only :D
+        with open('scroll_playlist.js', 'r') as js:
+            js_code = js.read()
+
+            # TODO: Check async js
+            bottom_sentinel = WebDriverWait(self, 10).until(EC.presence_of_element_located(
+                (By.XPATH, '//div[@data-testid="bottom-sentinel"]')
+            ))
+
+            curr_track = 0
+            all_tracks = []
+
+            while True:
+                tracks = self.find_elements_by_xpath(
+                    f'//div[@role="row" and @aria-rowindex > {curr_track}]'
+                )
+                log.debug(f'curr={curr_track}, len={len(tracks)}')
+                curr_track += len(tracks)
+                all_tracks += [SpotifyMusic(t) for t in tracks]
+
+                if curr_track >= n_tracks:
+                    break
+
+                self.execute_script(js_code, bottom_sentinel)
+                # self.execute_script('arguments[0].scrollIntoView();', bottom_sentinel)
+
+                WebDriverWait(self, 10).until(EC.presence_of_element_located(
+                    (By.XPATH, f'//div[@role="row" and @aria-rowindex > {curr_track}]')
+                ))
+            
+            log.info(f'Proccess Finished')
         
-
-
-
-
+            return all_tracks[1:] # Removing column titles
 
