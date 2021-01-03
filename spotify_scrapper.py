@@ -78,7 +78,7 @@ class SpotifyScrapper(Chrome):
             )).click()
             status = 'Login Succeded' if not self.__is_logged else 'OK'
             log.info(f'{status}, loading WebPlayer')
-        except:
+        except Exception:
             # TODO: Not logged? What Exception?
             log.error('Login Failed')
             self.quit()
