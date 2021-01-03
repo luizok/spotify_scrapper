@@ -1,4 +1,4 @@
-# spotify_srcapper
+# spotify_scrapper
 
 ---
 
