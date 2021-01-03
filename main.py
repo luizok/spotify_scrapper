@@ -14,3 +14,7 @@ if __name__ == '__main__':
         password=os.getenv('SPOTIFY_PASSWORD')
     )
 
+    playlists = scrapper.get_playlists()
+    tracks = scrapper.get_playlist('collection')
+
+    print(f'Got {len(tracks)} tracks')
