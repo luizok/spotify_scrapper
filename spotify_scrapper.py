@@ -117,7 +117,10 @@ class SpotifyScrapper(Chrome):
             el.text for el in
             user.find_elements_by_xpath('./parent::*/span')
         )
-        n_tracks = int(re.search(r'(\d+) músicas', text).group(1))
+
+        n_tracks_text = re.search(r'([\d\.]+) músicas', text).group(1)
+        n_tracks_text = n_tracks_text.replace('.', '')
+        n_tracks = int(n_tracks_text)
 
         log.info(f'There is {n_tracks} in "{playlist_name}" playlist')
 
@@ -134,18 +137,23 @@ class SpotifyScrapper(Chrome):
                 ))
             )
 
-            curr_track = 0
+            curr_track = 1
             all_tracks = []
 
             while True:
+                WebDriverWait(self, 10).until(EC.presence_of_element_located((
+                    By.XPATH,
+                    f'//div[@role="row" and @aria-rowindex > {curr_track}]'
+                )))
+
                 tracks = self.find_elements_by_xpath(
                     f'//div[@role="row" and @aria-rowindex > {curr_track}]'
                 )
-                log.debug(f'curr={curr_track}, len={len(tracks)}')
+                log.debug(f'curr={curr_track-1}, len={len(tracks)}')
                 curr_track += len(tracks)
                 all_tracks += [SpotifyMusic(t) for t in tracks]
 
-                if curr_track >= n_tracks:
+                if curr_track-1 >= n_tracks:
                     break
 
                 self.execute_script(js_code, bottom_sentinel)
@@ -154,11 +162,6 @@ class SpotifyScrapper(Chrome):
                 #     bottom_sentinel
                 # )
 
-                WebDriverWait(self, 10).until(EC.presence_of_element_located((
-                    By.XPATH,
-                    f'//div[@role="row" and @aria-rowindex > {curr_track}]'
-                )))
-
             log.info('Proccess Finished')
 
-            return all_tracks[1:]  # Removing column titles
+            return all_tracks
