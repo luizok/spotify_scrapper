@@ -14,6 +14,19 @@ from objects import SpotifyMusic
 log = get_logger(__name__)
 
 
+class EC_wait_for_non_empty_text(object):
+
+    def __init__(self, locator):
+        self.locator = locator
+
+    def __call__(self, driver):
+        try:
+            element_text = EC._find_element(driver, self.locator).text.strip()
+            return element_text != ''
+        except StaleElementReferenceException:
+            return False
+
+
 class SpotifyScrapper(Chrome):
 
     def __init__(self, username=None, password=None):
